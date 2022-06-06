@@ -45,7 +45,7 @@ def draw_box3d_image(image, qs, img_size=(900, 1600), color=(255,255,255), thick
 
 	return image, True
 
-def vis_obj(box, img, calib, hw, color_tmp=None, str_vis=None, thickness=4, id_hl=None, err_type=None):
+def vis_obj(box, img, calib, hw, color_tmp=None, str_vis=None, thickness=4, id_hl=None, err_type=None, frame_transform=None):
 	# visualize an individual object	
 	# repeat is for highlighted objects, used to create pause in the video
 
@@ -57,7 +57,7 @@ def vis_obj(box, img, calib, hw, color_tmp=None, str_vis=None, thickness=4, id_h
 	# draw text
 	if draw and obj_pts_2d is not None and str_vis is not None:
 		x1, y1 = int(obj_pts_2d[4, 0]), int(obj_pts_2d[4, 1])
-		img = cv2.putText(img, str_vis, (x1+5, y1-10), cv2.FONT_HERSHEY_TRIPLEX, 0.5, color_tmp, int(thickness/2))
+		img = cv2.putText(img, str_vis, (x1+5, y1-10), cv2.FONT_HERSHEY_TRIPLEX, 1.0, color_tmp, int(thickness/2))
 
 	# highlight
 	if err_type is not None:
@@ -85,8 +85,7 @@ def vis_obj(box, img, calib, hw, color_tmp=None, str_vis=None, thickness=4, id_h
 
 	return img
 
-def vis_image_with_obj(img, obj_res, obj_gt, calib, hw, save_path, h_thres=0, \
-	color_type='det', id_hl=None, repeat=60):
+def vis_image_with_obj(img, obj_res, obj_gt, calib, hw, save_path, frame_transform , h_thres=0, color_type='det', id_hl=None, repeat=60):
 	# obj_res, obj_gt, a list of object3D class instances
 	# h_thres: height threshold for filtering objects
 	# id_hl: ID to be highlighted, color_type: ['det', 'trk'], trk means different color for each one
@@ -110,7 +109,7 @@ def vis_image_with_obj(img, obj_res, obj_gt, calib, hw, save_path, h_thres=0, \
 					color_id = obj.id * 9 	# some magic number to scale up the id so that nearby ID does not have similar color
 					thickness = 5			# highlighted objects are thicker
 				else:						
-					color_id = 13			# general object, fixed, lightgreen
+					color_id = 29			# general object, fixed, lightgreen->red!!
 					thickness = 1			# general objects are thin
 			color_tmp = tuple([int(tmp * 255) for tmp in colors[color_id % max_color]])
 
@@ -123,7 +122,7 @@ def vis_image_with_obj(img, obj_res, obj_gt, calib, hw, save_path, h_thres=0, \
 				err_type = id_hl[obj.id]
 			else:
 				err_type = None
-			img = vis_obj(box_tmp, img, calib, hw['image'], color_tmp, str_vis, thickness, id_hl, err_type)
+			img = vis_obj(box_tmp, img, calib, hw['image'], color_tmp, str_vis, thickness, id_hl, err_type, frame_transform)
 
 	# save image
 	img = Image.fromarray(img)

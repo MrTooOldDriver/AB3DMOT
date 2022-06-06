@@ -32,7 +32,8 @@ def combine_trk_cat(split, dataset, method, suffix, num_hypo):
 	mkdir_if_missing(log); log = open(log, 'w+')
 
 	# source directory
-	subset = ['%s_%s_%s_%s' % (method, cat, split, suffix) for cat in cfg.cat_list]
+	# subset = ['%s_%s_%s_%s' % (method, cat, split, suffix) for cat in cfg.cat_list]
+	subset = seq_list
 
 	# loop through all hypotheses
 	for hypo_index in range(num_hypo):

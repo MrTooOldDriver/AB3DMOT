@@ -61,6 +61,8 @@ class AB3DMOT(object):
 				elif cat == 'Cyclist': 		algm, metric, thres, min_hits, max_age = 'hungar', 'dist_3d', 6, 3, 2
 				else: assert False, 'error'
 			else: assert False, 'error'
+		if cfg.dataset == 'vod':
+			algm, metric, thres, min_hits, max_age = 'hungar', 'dist_3d', 6, 3, 16
 		elif cfg.dataset == 'nuScenes':
 			if cfg.det_name == 'centerpoint':		# tuned for CenterPoint detections
 				if cat == 'Car': 			algm, metric, thres, min_hits, max_age = 'greedy', 'giou_3d', -0.4, 1, 2
@@ -265,7 +267,7 @@ class AB3DMOT(object):
 					print(trk.get_velocity())
 
 				trk.kf.x[3] = self.within_range(trk.kf.x[3])
-				trk.info = info[d, :][0]
+				trk.info = info[d, :][0] # get oreintation from info
 
 			# debug use only
 			# else:
@@ -425,14 +427,14 @@ class AB3DMOT(object):
 			trk_innovation_matrix = [trk.compute_innovation_matrix() for trk in self.trackers] 
 		matched, unmatched_dets, unmatched_trks, cost, affi = \
 			data_association(dets, trks, self.metric, self.thres, self.algm, trk_innovation_matrix)
-		# print_log('detections are', log=self.log, display=False)
-		# print_log(dets, log=self.log, display=False)
-		# print_log('tracklets are', log=self.log, display=False)
-		# print_log(trks, log=self.log, display=False)
-		# print_log('matched indexes are', log=self.log, display=False)
-		# print_log(matched, log=self.log, display=False)
-		# print_log('raw affinity matrix is', log=self.log, display=False)
-		# print_log(affi, log=self.log, display=False)
+		print_log('detections are', log=self.log, display=False)
+		print_log(dets, log=self.log, display=False)
+		print_log('tracklets are', log=self.log, display=False)
+		print_log(trks, log=self.log, display=False)
+		print_log('matched indexes are', log=self.log, display=False)
+		print_log(matched, log=self.log, display=False)
+		print_log('raw affinity matrix is', log=self.log, display=False)
+		print_log(affi, log=self.log, display=False)
 
 		# update trks with matched detection measurement
 		self.update(matched, unmatched_trks, dets, info)
