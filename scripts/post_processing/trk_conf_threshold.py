@@ -51,7 +51,7 @@ def conf_thresholding(data_dir, num_hypo, thres_dict):
             for track_id, score_list in trk_id_score.items():
                 average_score = sum(score_list) / float(len(score_list))
                 obj_type = cat_dict[track_id]
-                if average_score < 0.5:
+                if average_score < 0.4: #todo change this threshold
                     to_delete_id.append(track_id)
 
             ############# remove the ID in the data_0 folder

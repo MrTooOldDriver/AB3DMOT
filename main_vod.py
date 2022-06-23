@@ -161,7 +161,7 @@ def main():
     dataset = 'vod'
     config_path = './configs/%s.yml' % dataset
     cfg, settings_show = Config(config_path)
-    load_from_label = False
+    load_from_label = True
 
     # overwrite split and detection method
     # if args.split is not '': cfg.split = args.split

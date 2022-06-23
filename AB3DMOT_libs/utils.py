@@ -84,7 +84,7 @@ def get_threshold(dataset, det_name):
 					'Bus': 0.430000, 'Motorcycle': 0.368667, 'Bicycle': 0.394146}
 		else: assert False, 'error, detection method not supported for getting threshold' % det_name
 	else:
-		return {}
+		return {'Car': 0.262545, 'Pedestrian': 0.217600, 'Cyclist': 0.394146}
 
 def initialize(cfg, data_root, save_dir, subfolder, seq_name, cat, ID_start, hw, log_file, seq_stop):
 	# initialize the tracker and provide all path of data needed
@@ -106,7 +106,7 @@ def initialize(cfg, data_root, save_dir, subfolder, seq_name, cat, ID_start, hw,
 				frame_data = FrameDataLoader(kitti_locations=kitti_locations,
 											 frame_number=str(i+j).rjust(5, '0'))
 				transforms = FrameTransformMatrix(frame_data)
-				imu_poses.append(transforms.t_utm_camera) #from camera to utm,size = # seq_frames x 4 x 4
+				imu_poses.append(transforms.t_map_camera) #from camera to map,size = # seq_frames x 4 x 4
 				break
 			except Exception:
 				continue
