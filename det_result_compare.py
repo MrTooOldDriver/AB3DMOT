@@ -1,7 +1,8 @@
 import glob
 import os.path
 
-label_list = glob.glob('./label_output/*/*.txt')
+# label_list = glob.glob('./label_output/*/*.txt')
+label_list = glob.glob('./label_2_with_track_ids/*/*.txt')
 gt_label_path = './data/vod/tracking/training/label_2/'
 max_diff = 0
 max_diff_ratio = 0
