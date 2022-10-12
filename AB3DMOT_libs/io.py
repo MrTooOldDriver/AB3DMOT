@@ -10,12 +10,15 @@ from xinshuo_io import mkdir_if_missing, load_txt_file, save_txt_file
 
 def load_detection(file, det_str2_id, load_from_label):
 	# load from raw file
-	with warnings.catch_warnings():
-		warnings.simplefilter("ignore")
-		if load_from_label:
-			dets = np.loadtxt(file, delimiter=' ', converters={0: lambda s: det_str2_id.get(str(s)[2:-1])}) 	# load detections, N x 15
-		else:
-			dets = np.loadtxt(file, delimiter=',') 	# load detections, N x 15
+	try:
+		with warnings.catch_warnings():
+			warnings.simplefilter("ignore")
+			if load_from_label:
+				dets = np.loadtxt(file, delimiter=' ', converters={0: lambda s: det_str2_id.get(str(s)[2:-1])}) 	# load detections, N x 15
+			else:
+				dets = np.loadtxt(file, delimiter=',') 	# load detections, N x 15
+	except IndexError:
+		return [], False
 	if len(dets.shape) == 1: dets = np.expand_dims(dets, axis=0)
 	if dets.shape[1] == 0:		# if no detection in a sequence
 		return [], False

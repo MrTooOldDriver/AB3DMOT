@@ -62,10 +62,18 @@ def vis(args):
         # elif args.dataset == 'nuScenes':
         else: assert False, 'mini data does not support for %s-%s' % (args.dataset, args.split)
 
-    seq_eval = []
-    clips_list = glob.glob('../../clips/*.txt')
-    for clip in clips_list:
-        seq_eval.append(clip.split('\\')[-1].split('.')[0])
+    if args.dataset == 'vod':
+        seq_eval = []
+        clips_list = glob.glob('../../clips/*.txt')
+        for clip in clips_list:
+            seq_eval.append(clip.split('\\')[-1].split('.')[0])
+    elif args.dataset == 'uvod':
+        seq_eval = []
+        clips_list = glob.glob('../../uvod_clips/*.txt')
+        for clip in clips_list:
+            seq_eval.append(clip.split('\\')[-1].split('.')[0])
+    else:
+        raise NotImplementedError('%s dataset is not supported' % args.dataset)
 
     # loop through every sequence
     seq_count = 0

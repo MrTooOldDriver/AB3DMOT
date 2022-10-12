@@ -63,6 +63,15 @@ def get_subfolder_seq(dataset, split):
 					  8: 'moped_scooter', 9: 'motor', 10: 'truck', 11: 'ride_other', 12: 'Other vehicle', 13: 'Uncertain ride', 0: 'others'}
 		det_str2_id = {v: k for k, v in det_id2str.items()}
 		hw = {'image': (1216, 1936), 'lidar': (720, 1920)}
+	elif dataset == 'uvod':
+		seq_eval = ['00000','00544', '01312', '01803', '02200','02532', '02798','03277','03575','03610','04049','04387',
+					'04652','06334', '06571','06759','07543', '07900','08198','08481', '08749', '09096','09518','09776']
+		data_root = os.path.join(file_path, '../data/uvod')
+		subfolder = 'training'
+		det_id2str = {1: 'Car', 2: 'Pedestrian', 3: 'Cyclist', 4: 'rider', 5: 'bicycle', 6: 'bicycle_rack', 7: 'Human depictio',
+					  8: 'moped_scooter', 9: 'motor', 10: 'truck', 11: 'ride_other', 12: 'Other vehicle', 13: 'Uncertain ride', 0: 'others'}
+		det_str2_id = {v: k for k, v in det_id2str.items()}
+		hw = {'image': (1216, 1936), 'lidar': (720, 1920)}
 	else: assert False, 'error, %s dataset is not supported' % dataset
 		
 	return subfolder, det_id2str, hw, seq_eval, data_root

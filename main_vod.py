@@ -30,7 +30,8 @@ def main_per_cat(cfg, frames, log, ID_start, load_from_label, save_folder_name):
     result_sha = '%s_%s_%s' % (cfg.det_name, save_folder_name, cfg.split)
     # det_root = os.path.join('./data', cfg.dataset, 'tracking','training', 'label_2')
     if load_from_label:
-        det_root = os.path.join('./data', cfg.dataset, 'tracking', 'training', 'label_2')
+        # det_root = os.path.join('./data', cfg.dataset, 'tracking', 'training', 'label_2')
+        det_root = os.path.join('./data', cfg.dataset, 'detection') #uvod detection is in kitti format
     else:
         det_root = os.path.join('./data', cfg.dataset, 'detection')
     # subfolder, det_id2str, hw, seq_eval, data_root = get_subfolder_seq(cfg.dataset, cfg.split)
@@ -60,9 +61,14 @@ def main_per_cat(cfg, frames, log, ID_start, load_from_label, save_folder_name):
     # initialize tracker
     tracker, frame_list = initialize(cfg, trk_root, save_dir, subfolder, frames[0], 'all', ID_start, hw, log, seq_stop=frames[-1])
 
+    skip_first_x_frames = 5
+
     for frame in frames:
         # add an additional frame here to deal with the case that the last frame, although no detection
         # but should output an N x 0 affinity for consistency
+        if total_frames <= skip_first_x_frames:
+            total_frames += 1
+            continue
 
         # logging
         print_str = 'processing %s %s: %d/%d, %d/%d   \r' % (result_sha, frames[0], seq_count, \
@@ -71,9 +77,12 @@ def main_per_cat(cfg, frames, log, ID_start, load_from_label, save_folder_name):
         sys.stdout.flush()
 
         # tracking by detection
-        seq_file = os.path.join(det_root, frame + '.txt')
+        # seq_file = os.path.join(det_root, frame + '.txt')
+        seq_file = os.path.join(det_root, str(int(frame)) + '.txt') # fix for uvod det output bez i fucking forget change int to 0000int.txt
         calib_file = os.path.join(det_root, frame + '.txt')
-        kitti_locations = KittiLocations(root_dir="./data/vod/tracking",
+        # kitti_locations = KittiLocations(root_dir="./data/vod/tracking",
+        #                                  output_dir="example_output")
+        kitti_locations = KittiLocations(root_dir="./data/uvod/tracking",
                                          output_dir="example_output")
 
         frame_data = FrameDataLoader(kitti_locations=kitti_locations,
@@ -158,7 +167,7 @@ def main_per_cat(cfg, frames, log, ID_start, load_from_label, save_folder_name):
 
 def main():
     # load config files
-    dataset = 'vod'
+    dataset = 'uvod'
     config_path = './configs/%s.yml' % dataset
     cfg, settings_show = Config(config_path)
     load_from_label = True
@@ -188,7 +197,8 @@ def main():
     #         seqs = []
     #     last_seq = seq_num
     #     seqs.append(str(seq_num).rjust(5, '0'))
-    clips_list = glob.glob('./clips/*.txt')
+    # clips_list = glob.glob('./clips/*.txt')
+    clips_list = glob.glob('./uvod_clips/*.txt')
     for clip in clips_list:
         file_names.append(clip.split('\\')[-1].split('.')[0])
         seq = []

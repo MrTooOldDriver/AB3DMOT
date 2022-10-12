@@ -76,7 +76,7 @@ class AB3DMOT(object):
                     assert False, 'error'
             else:
                 assert False, 'error'
-        if cfg.dataset == 'vod':
+        if cfg.dataset == 'vod' or cfg.dataset == 'uvod':
             # algm, metric, thres, min_hits, max_age = 'hungar', 'dist_3d', 6, 3, 3 #load from label
             algm, metric, thres, min_hits, max_age = 'hungar', 'dist_3d', 2, 4, 8 #pointrcnn
         elif cfg.dataset == 'nuScenes':
