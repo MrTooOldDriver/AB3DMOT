@@ -8,13 +8,15 @@ from xinshuo_io import mkdir_if_missing, load_txt_file, save_txt_file
 
 ################## loading
 
-def load_detection(file, det_str2_id, load_from_label):
+def load_detection(file, det_str2_id, load_from_label, load_from_openpcdet):
 	# load from raw file
 	try:
 		with warnings.catch_warnings():
 			warnings.simplefilter("ignore")
 			if load_from_label:
-				dets = np.loadtxt(file, delimiter=' ', converters={0: lambda s: det_str2_id.get(str(s)[2:-1])}) 	# load detections, N x 15
+				dets = np.loadtxt(file, delimiter=' ', converters={0: lambda s: det_str2_id.get(str(s)[2:-1])}) 	# load labels, N x 16
+			elif load_from_openpcdet:
+				dets = np.loadtxt(file, delimiter=' ', converters={0: lambda s: det_str2_id.get(str(s)[2:-1])})     # load detections, N x 16
 			else:
 				dets = np.loadtxt(file, delimiter=',') 	# load detections, N x 15
 	except IndexError:
@@ -25,8 +27,8 @@ def load_detection(file, det_str2_id, load_from_label):
 	else:
 		return dets, True
 
-def get_frame_det(dets_all, calib, load_from_label, frame_transform):
-	if load_from_label:
+def get_frame_det(dets_all, calib, load_from_label, load_from_openpcdet, frame_transform):
+	if load_from_label or load_from_openpcdet:
 		#loading from label files
 		# get irrelevant information associated with an object, not used for associationg
 		ori_array = dets_all[:,-2].reshape((-1, 1))		# orientation

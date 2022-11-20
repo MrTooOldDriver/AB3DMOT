@@ -4,13 +4,15 @@ import shutil
 
 from AB3DMOT_libs.utils import get_subfolder_seq
 
-# result_dir = './results/vod/'
-result_dir = './results/uvod/'
-label_output = './label_output/'
+result_dir = './results/vod/'
+# result_dir = './results/uvod/'
+# label_output = './pointrcnn_vod/'
+# label_output = './pointrcnn_lidar_vod/'
+label_output = './pointrcnn_radar_vod/'
 
 file_names = []
-# clips_list = glob.glob('./clips/*.txt')
-clips_list = glob.glob('./uvod_clips/*.txt')
+clips_list = glob.glob('./clips/*.txt')
+# clips_list = glob.glob('./uvod_clips/*.txt')
 for clip in clips_list:
     file_names.append(clip.split('\\')[-1].split('.')[0])
 

@@ -18,8 +18,9 @@ from xinshuo_io import mkdir_if_missing, save_txt_file
 from xinshuo_miscellaneous import get_timestring, print_log
 
 
-def main_per_cat(cfg, frames, log, ID_start, load_from_label, save_folder_name):
+def main_per_cat(cfg, frames, log, ID_start, load_from_label, load_from_openpcdet,save_folder_name):
     print('load_from_label: ', load_from_label)
+    print('load_from_openpcdet: ', load_from_openpcdet)
     if load_from_label:
         det_id2str = {1: 'Car', 2: 'Pedestrian', 3: 'Cyclist', 4: 'rider', 5: 'bicycle', 6: 'bicycle_rack', 7: 'human_depiction',
                       8: 'moped_scooter', 9: 'motor', 10: 'truck', 11: 'ride_other', 12: 'vehicle_other', 13: 'ride_uncertain', 14: 'DontCare'}
@@ -30,8 +31,11 @@ def main_per_cat(cfg, frames, log, ID_start, load_from_label, save_folder_name):
     result_sha = '%s_%s_%s' % (cfg.det_name, save_folder_name, cfg.split)
     # det_root = os.path.join('./data', cfg.dataset, 'tracking','training', 'label_2')
     if load_from_label:
-        # det_root = os.path.join('./data', cfg.dataset, 'tracking', 'training', 'label_2')
-        det_root = os.path.join('./data', cfg.dataset, 'detection') #uvod detection is in kitti format
+        det_root = os.path.join('./data', cfg.dataset, 'tracking', 'training', 'label_2')
+        # det_root = os.path.join('./data', cfg.dataset, 'detection') #uvod detection is in kitti format
+    elif load_from_openpcdet:
+        # det_root = os.path.join('./data', cfg.dataset, 'pointrcnn_vod_lidar')
+        det_root = os.path.join('./data', cfg.dataset, 'pointrcnn_vod_radar')
     else:
         det_root = os.path.join('./data', cfg.dataset, 'detection')
     # subfolder, det_id2str, hw, seq_eval, data_root = get_subfolder_seq(cfg.dataset, cfg.split)
@@ -77,28 +81,29 @@ def main_per_cat(cfg, frames, log, ID_start, load_from_label, save_folder_name):
         sys.stdout.flush()
 
         # tracking by detection
-        # seq_file = os.path.join(det_root, frame + '.txt')
-        seq_file = os.path.join(det_root, str(int(frame)) + '.txt') # fix for uvod det output bez i fucking forget change int to 0000int.txt
+
+        seq_file = os.path.join(det_root, frame + '.txt') # vod
+        # seq_file = os.path.join(det_root, str(int(frame)) + '.txt') # fix for uvod det output bez i fucking forget change int to 0000int.txt
         calib_file = os.path.join(det_root, frame + '.txt')
-        # kitti_locations = KittiLocations(root_dir="./data/vod/tracking",
-        #                                  output_dir="example_output")
-        kitti_locations = KittiLocations(root_dir="./data/uvod/tracking",
+        kitti_locations = KittiLocations(root_dir="./data/vod/tracking",
                                          output_dir="example_output")
+        # kitti_locations = KittiLocations(root_dir="./data/uvod/tracking",
+        #                                  output_dir="example_output")
 
         frame_data = FrameDataLoader(kitti_locations=kitti_locations,
                                      frame_number=frame)
         frame_transform = FrameTransformMatrix(frame_data)
 
         try:
-            dets_frame_from_file, flag = load_detection(seq_file, det_str2_id, load_from_label)
+            dets_frame_from_file, flag = load_detection(seq_file, det_str2_id, load_from_label, load_from_openpcdet)
         except OSError:
             continue
         if len(dets_frame_from_file) == 0:
             continue
 
-        dets_frame = get_frame_det(dets_frame_from_file, tracker.calib, load_from_label, frame_transform)
+        dets_frame = get_frame_det(dets_frame_from_file, tracker.calib, load_from_label, load_from_openpcdet, frame_transform)
 
-        if not load_from_label:
+        if not load_from_label and not load_from_openpcdet:
             # if loading from pointrcnn detection result, do transformation
             dets = dets_frame.get('dets')
             xyz_in_lidar = dets[:, 3:6]
@@ -167,10 +172,12 @@ def main_per_cat(cfg, frames, log, ID_start, load_from_label, save_folder_name):
 
 def main():
     # load config files
-    dataset = 'uvod'
+    dataset = 'vod'
+    # dataset = 'uvod'
     config_path = './configs/%s.yml' % dataset
     cfg, settings_show = Config(config_path)
-    load_from_label = True
+    load_from_label = False
+    load_from_openpcdet = True
 
     # overwrite split and detection method
     # if args.split is not '': cfg.split = args.split
@@ -197,8 +204,8 @@ def main():
     #         seqs = []
     #     last_seq = seq_num
     #     seqs.append(str(seq_num).rjust(5, '0'))
-    # clips_list = glob.glob('./clips/*.txt')
-    clips_list = glob.glob('./uvod_clips/*.txt')
+    clips_list = glob.glob('./clips/*.txt')
+    # clips_list = glob.glob('./uvod_clips/*.txt')
     for clip in clips_list:
         file_names.append(clip.split('\\')[-1].split('.')[0])
         seq = []
@@ -214,7 +221,7 @@ def main():
 
     # run tracking for each seqs in seqs_list
     for i in range(len(seqs_list)):
-        ID_start = main_per_cat(cfg, seqs_list[i], log, ID_start, load_from_label, file_names[i])
+        ID_start = main_per_cat(cfg, seqs_list[i], log, ID_start, load_from_label, load_from_openpcdet, file_names[i])
 
     # combine results for every category
     print_log('\ncombining results......', log=log)
