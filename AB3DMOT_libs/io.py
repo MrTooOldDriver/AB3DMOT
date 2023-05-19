@@ -2,35 +2,87 @@
 # email: xinshuo.weng@gmail.com
 
 import warnings, numpy as np, os
+
+from vod import homogeneous_transformation, homogeneous_coordinates
 from xinshuo_io import mkdir_if_missing, load_txt_file, save_txt_file
 
 ################## loading
 
-def load_detection(file):
-
+def load_detection(file, det_str2_id, load_from_label, load_from_openpcdet):
 	# load from raw file
-	with warnings.catch_warnings():
-		warnings.simplefilter("ignore")
-		dets = np.loadtxt(file, delimiter=',') 	# load detections, N x 15
-
-	if len(dets.shape) == 1: dets = np.expand_dims(dets, axis=0) 	
+	try:
+		with warnings.catch_warnings():
+			warnings.simplefilter("ignore")
+			if load_from_label:
+				dets = np.loadtxt(file, delimiter=' ', converters={0: lambda s: det_str2_id.get(str(s)[2:-1])}) 	# load labels, N x 16
+			elif load_from_openpcdet:
+				dets = np.loadtxt(file, delimiter=' ', converters={0: lambda s: det_str2_id.get(str(s)[2:-1])})     # load detections, N x 16
+			else:
+				dets = np.loadtxt(file, delimiter=',') 	# load detections, N x 15
+	except IndexError:
+		return [], False
+	if len(dets.shape) == 1: dets = np.expand_dims(dets, axis=0)
 	if dets.shape[1] == 0:		# if no detection in a sequence
 		return [], False
 	else:
 		return dets, True
 
-def get_frame_det(dets_all, frame):
-	
-	# get irrelevant information associated with an object, not used for associationg
-	ori_array = dets_all[dets_all[:, 0] == frame, -1].reshape((-1, 1))		# orientation
-	other_array = dets_all[dets_all[:, 0] == frame, 1:7] 					# other information, e.g, 2D box, ...
-	additional_info = np.concatenate((ori_array, other_array), axis=1)		
+def get_frame_det(dets_all, calib, load_from_label, load_from_openpcdet, frame_transform):
+	if load_from_label or load_from_openpcdet:
+		#loading from label files
+		# get irrelevant information associated with an object, not used for associationg
+		ori_array = dets_all[:,-2].reshape((-1, 1))		# orientation
+		# other_array = dets_all[:,1:8] # other information, e.g, 2D box, ...
+		box_location_2d = dets_all[:,4:8] #2d box
+		# todo type is wrong here, occluded should be type
+		type = dets_all[:,0].reshape((-1, 1))
+		score = dets_all[:,-1].reshape((-1, 1))
+		other_array = np.concatenate((box_location_2d, score), axis=1)
+		other_array = np.concatenate((type, other_array), axis=1)
+		additional_info = np.concatenate((ori_array, other_array), axis=1)
 
-	# get 3D box
-	dets = dets_all[dets_all[:, 0] == frame, 7:14]		
+		# get 3D box
+		dets = dets_all[:, 8:15]
 
-	dets_frame = {'dets': dets, 'info': additional_info}
-	return dets_frame
+
+		dets_frame = {'dets': dets, 'info': additional_info}
+		return dets_frame
+	else:
+		# loading from det results
+		# filter by det score
+		score_threshold = 0.0
+		dets_all = dets_all[dets_all[:, 6] >= score_threshold, :]
+
+		# use ori from 3D boxes
+		ori_array = dets_all[:, -2].reshape((-1, 1))
+		# load type
+		type_array = dets_all[:, 1].reshape((-1, 1))
+
+		# get 3D box
+		dets = dets_all[:, 7:14]
+		bottom_left_in_lidar_3D = dets[:, 3:6] - dets[:, 0:3]
+		top_right_in_lidar_3D = dets[:, 3:6] + dets[:, 0:3]
+
+		# calculate 2D box by using 3D box
+		#todo change here by using frame_transfrom
+		bottom_left_in_camera_3D = homogeneous_transformation(homogeneous_coordinates(bottom_left_in_lidar_3D), frame_transform.t_camera_lidar)
+		bottom_left_in_camera_2D = calib.project_velo_to_image(bottom_left_in_camera_3D[:, 0:3])
+		top_right_in_camera_3D = homogeneous_transformation(homogeneous_coordinates(top_right_in_lidar_3D), frame_transform.t_camera_lidar)
+		top_right_in_camera_2D = calib.project_velo_to_image(top_right_in_camera_3D[:, 0:3])
+
+		# concatenate to get 2d box location
+		img_box_location = np.concatenate((bottom_left_in_camera_2D, top_right_in_camera_2D), axis=1)
+		# 2D box + score
+		img_box_location = np.concatenate((img_box_location, dets_all[:,6].reshape((-1, 1))), axis=1)
+
+		# add type at front
+		other_array = np.concatenate((type_array, img_box_location), axis=1)
+
+		# add ori at front
+		additional_info = np.concatenate((ori_array, other_array), axis=1)
+
+		dets_frame = {'dets': dets, 'info': additional_info}
+		return dets_frame
 
 def load_highlight(file):
 	# load file with each line containing seq_id, frame_id, ID, error_type

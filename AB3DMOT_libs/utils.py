@@ -8,6 +8,7 @@ from AB3DMOT_libs.model import AB3DMOT
 from AB3DMOT_libs.kitti_oxts import load_oxts
 from AB3DMOT_libs.kitti_calib import Calibration
 from AB3DMOT_libs.nuScenes_split import get_split
+from vod import KittiLocations, FrameDataLoader, FrameTransformMatrix
 from xinshuo_io import mkdir_if_missing, is_path_exists, fileparts, load_list_from_folder
 from xinshuo_miscellaneous import merge_listoflist
 
@@ -53,7 +54,24 @@ def get_subfolder_seq(dataset, split):
 		if split == 'test':  seq_eval = get_split()[2]      # 150 scenes
 
 		data_root = os.path.join(file_path, '../data/nuScenes/nuKITTI') 	# path containing the nuScenes-converted KITTI root
-
+	elif dataset == 'vod':
+		seq_eval = ['00000','00544', '01312', '01803', '02200','02532', '02798','03277','03575','03610','04049','04387',
+					'04652','06334', '06571','06759','07543', '07900','08198','08481', '08749', '09096','09518','09776']
+		data_root = os.path.join(file_path, '../data/vod')
+		subfolder = 'training'
+		det_id2str = {1: 'Car', 2: 'Pedestrian', 3: 'Cyclist', 4: 'rider', 5: 'bicycle', 6: 'bicycle_rack', 7: 'Human depictio',
+					  8: 'moped_scooter', 9: 'motor', 10: 'truck', 11: 'ride_other', 12: 'Other vehicle', 13: 'Uncertain ride', 0: 'others'}
+		det_str2_id = {v: k for k, v in det_id2str.items()}
+		hw = {'image': (1216, 1936), 'lidar': (720, 1920)}
+	elif dataset == 'uvod':
+		seq_eval = ['00000','00544', '01312', '01803', '02200','02532', '02798','03277','03575','03610','04049','04387',
+					'04652','06334', '06571','06759','07543', '07900','08198','08481', '08749', '09096','09518','09776']
+		data_root = os.path.join(file_path, '../data/uvod')
+		subfolder = 'training'
+		det_id2str = {1: 'Car', 2: 'Pedestrian', 3: 'Cyclist', 4: 'rider', 5: 'bicycle', 6: 'bicycle_rack', 7: 'Human depictio',
+					  8: 'moped_scooter', 9: 'motor', 10: 'truck', 11: 'ride_other', 12: 'Other vehicle', 13: 'Uncertain ride', 0: 'others'}
+		det_str2_id = {v: k for k, v in det_id2str.items()}
+		hw = {'image': (1216, 1936), 'lidar': (720, 1920)}
 	else: assert False, 'error, %s dataset is not supported' % dataset
 		
 	return subfolder, det_id2str, hw, seq_eval, data_root
@@ -74,26 +92,46 @@ def get_threshold(dataset, det_name):
 			return {'Car': 0.269231, 'Pedestrian': 0.410000, 'Truck': 0.300000, 'Trailer': 0.372632, 
 					'Bus': 0.430000, 'Motorcycle': 0.368667, 'Bicycle': 0.394146}
 		else: assert False, 'error, detection method not supported for getting threshold' % det_name
-	else: assert False, 'error, dataset %s not supported for getting threshold' % dataset
+	else:
+		return {'Car': 0.262545, 'Pedestrian': 0.217600, 'Cyclist': 0.394146}
 
-def initialize(cfg, data_root, save_dir, subfolder, seq_name, cat, ID_start, hw, log_file):
+def initialize(cfg, data_root, save_dir, subfolder, seq_name, cat, ID_start, hw, log_file, seq_stop):
 	# initialize the tracker and provide all path of data needed
 
 	oxts_dir  = os.path.join(data_root, subfolder, 'oxts')
 	calib_dir = os.path.join(data_root, subfolder, 'calib')
-	image_dir = os.path.join(data_root, subfolder, 'image_02')
+	image_dir = os.path.join(data_root, subfolder, 'image_2')
 
 	# load ego poses
-	oxts = os.path.join(data_root, subfolder, 'oxts', seq_name+'.json')
-	if not is_path_exists(oxts): oxts = os.path.join(data_root, subfolder, 'oxts', seq_name+'.txt')
-	imu_poses = load_oxts(oxts)                 # seq_frames x 4 x 4
+	kitti_locations = KittiLocations(root_dir="./data/vod/tracking/",
+									 output_dir="example_output",
+									 frame_set_path="",
+									 pred_dir="",
+									 )
+	imu_poses = []
+	for i in range(int(seq_name), int(seq_stop)+1):
+		for j in range(0, 4):
+			try:
+				frame_data = FrameDataLoader(kitti_locations=kitti_locations,
+											 frame_number=str(i+j).rjust(5, '0'))
+				transforms = FrameTransformMatrix(frame_data)
+				imu_poses.append(transforms.t_map_camera) #from camera to map,size = # seq_frames x 4 x 4
+				break
+			except Exception:
+				continue
+	imu_poses = np.array(imu_poses)
 
 	# load calibration
-	calib = os.path.join(data_root, subfolder, 'calib', seq_name+'.txt')
-	calib = Calibration(calib)
+	try:
+		calib = os.path.join(data_root, 'calib', seq_name+'.txt')
+		calib = Calibration(calib)
+	except Exception:
+		print('calibration file broken, using seq+1 calibration')
+		calib = os.path.join(data_root, 'calib', str(int(seq_name)+1).rjust(5,'0') + '.txt')
+		calib = Calibration(calib)
 
 	# load image for visualization
-	img_seq = os.path.join(data_root, subfolder, 'image_02', seq_name)
+	img_seq = os.path.join(data_root, 'image_2')
 	vis_dir = os.path.join(save_dir, 'vis_debug', seq_name); mkdir_if_missing(vis_dir)
 
 	# initiate the tracker
@@ -123,7 +161,7 @@ def find_all_frames(root_dir, subset, data_suffix, seq_list):
 
 		# find all frame indexes for each category
 		for subset_tmp in subset:
-			data_dir = os.path.join(root_dir, subset_tmp, 'trk_withid'+data_suffix, seq_tmp)			# pointrcnn_ped
+			data_dir = os.path.join(root_dir, 'trk_withid'+data_suffix, seq_tmp)			# pointrcnn_ped
 			if not is_path_exists(data_dir):
 				print('%s dir not exist' % data_dir)
 				assert False, 'error'

@@ -71,7 +71,9 @@ class Calibration(object):
         self.R0 = calibs['R0_rect']
         self.R0 = np.reshape(self.R0,[3,3])
 
-        self.I2V = calibs['Tr_imu_to_velo']  # 3 x 4
+        # self.I2V = calibs['Tr_imu_to_velo']  # 3 x 4
+        # self.I2V = np.reshape(self.I2V, [3,4])
+        self.I2V = [9.999976000000e-01,7.553071000000e-04,-2.035826000000e-03,-8.086759000000e-01,-7.854027000000e-04,9.998898000000e-01,-1.482298000000e-02,3.195559000000e-01,2.024406000000e-03,1.482454000000e-02,9.998881000000e-01,-7.997231000000e-01]
         self.I2V = np.reshape(self.I2V, [3,4])
         self.V2I = inverse_rigid_trans(self.I2V)
 
@@ -82,6 +84,7 @@ class Calibration(object):
         self.f_v = self.P[1,1]
         self.b_x = self.P[0,3]/(-self.f_u) # relative 
         self.b_y = self.P[1,3]/(-self.f_v)
+
 
     def read_calib_file(self, filepath):
         ''' Read in a calibration file and parse into a dictionary.

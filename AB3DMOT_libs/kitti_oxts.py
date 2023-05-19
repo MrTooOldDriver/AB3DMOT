@@ -120,7 +120,7 @@ def get_ego_traj(imu_poses, frame, pref, futf, inverse=False, only_fut=False):
     
     # compute the start and end frame to retrieve the imu poses
     num_frames = imu_poses.shape[0]
-    assert frame >= 0 and frame <= num_frames - 1, 'error'
+    # assert frame >= 0 and frame <= num_frames - 1, 'error' # bez we are reading by global seq number
     if inverse:             # pre and fut are inverse, i.e., inverse ego motion compensation
         start = min(frame+pref-1, num_frames-1)
         end   = max(frame-futf-1, -1)
@@ -161,7 +161,8 @@ def egomotion_compensation_ID(traj_id, calib, ego_rot_imu, ego_xyz_imu, left, ri
     # ego_imu can have frames less than pre+fut due to sequence boundary
 
     # convert trajectory data from rect to IMU for ego-motion compensation
-    traj_id_imu = calib.rect_to_imu(traj_id)        # less_pre x 3
+    # traj_id_imu = calib.rect_to_imu(traj_id)        # less_pre x 3
+    traj_id_imu = traj_id        # less_pre x 3
 
     if mask is not None:
         good_index = np.where(mask == 1)[0]
@@ -180,6 +181,7 @@ def egomotion_compensation_ID(traj_id, calib, ego_rot_imu, ego_xyz_imu, left, ri
         traj_id_imu += ego_xyz_imu[:traj_id_imu.shape[0], :]   # les_frames x 3
 
     # convert trajectory data back to rect coordinate for visualization
-    traj_id_rect = calib.imu_to_rect(traj_id_imu)
+    # traj_id_rect = calib.imu_to_rect(traj_id_imu)
+    traj_id_rect = traj_id_imu
 
     return traj_id_rect
